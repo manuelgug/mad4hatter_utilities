@@ -8,7 +8,7 @@ suppressPackageStartupMessages(library(gridExtra))
 option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="test_data/allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "test_data/resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
+  make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
   make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case")
@@ -26,6 +26,9 @@ use_case_amps<- opt$use_case_amps
 
 #import allele table
 allele.data<-read.csv(allele_table, sep ="\t")
+base_filename <- basename(allele_table)
+filename <- tools::file_path_sans_ext(base_filename)
+
 amp_cats<-read.csv("resources/amplicon_categories.csv", header =T)
 
 # calculate initial read counts and allele freqs
@@ -49,6 +52,21 @@ if (any(grepl("(?i)Neg", allele.data$sampleID))) {
   
   neg_controls_index <- grepl("(?i)Neg", allele.data$sampleID)
   neg_controls <- allele.data[neg_controls_index, ]
+  
+  #PLOT MAX READS PER CONTROL
+  summarized_data <- neg_controls %>%
+    group_by(sampleID) %>%
+    summarize(max_reads = max(reads))
+  
+  neg_plot<-ggplot(summarized_data, aes(x = sampleID, y = max_reads)) +
+    geom_bar(stat = "identity") +
+    labs(x = "SampleID", y = "Reads") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  ggsave(paste0(filename, "_", "max_reads_per_neg_control.png"), neg_plot, width = 8, height = 8, dpi = 300, bg = "white")
+  
+  
   NEG_threshold_max <- max(neg_controls$reads) # max threshold across amplicons
   NEG_threshold_q95 <- quantile(neg_controls$reads, 0.95) # q95 threshold across amplicons
   
@@ -63,6 +81,28 @@ if (any(grepl("(?i)Neg", allele.data$sampleID))) {
   missing_loci <- setdiff(all.loci, NEG_thresholds_q95$locus)
   missing_data <- data.frame(locus = missing_loci, reads = 0)
   NEG_thresholds_q95 <- rbind(NEG_thresholds_q95, missing_data)
+  
+  
+  #PLOT MAX READS PER AMPLICON
+  
+  # Order the rows in ascending order by the 'reads' column and exclude reads without contaminants
+  NEG_thresholds_max_ordered <- NEG_thresholds_max[order(NEG_thresholds_max$reads), ]
+  
+  # Assuming that you have a common column 'locus' in both dataframes
+  NEG_thresholds_max_ordered$Category <- neg_controls$Category[match(NEG_thresholds_max_ordered$locus, neg_controls$locus)]
+  NEG_thresholds_max_ordered<-NEG_thresholds_max_ordered[!is.na(NEG_thresholds_max_ordered$Category), ]
+  
+  #keep order in plot 
+  NEG_thresholds_max_ordered$locus <- factor(NEG_thresholds_max_ordered$locus, levels = NEG_thresholds_max_ordered$locus)
+  
+  # Create the ggplot with reordered levels and fill by Category
+  neg_plot_amps <- ggplot(NEG_thresholds_max_ordered, aes(x = locus, y = reads, fill = Category)) +
+    geom_bar(stat = "identity") +
+    labs(x = "Amplicon", y = "Reads") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 6))
+  
+  ggsave(paste0(filename, "_", "max_reads_per_amplicon.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
   
 } else {
   
@@ -235,9 +275,6 @@ report<-cbind(rownames(report), report)
 colnames(report)[1] <- ""
 colnames(report)[3]<-paste0("contaminants_filter_", CFilteringMethod_)
 colnames(report)[4]<-paste0("frequency_filter_", MAF)
-
-base_filename <- basename(allele_table)
-filename <- tools::file_path_sans_ext(base_filename)
 
 filtered_allele.data <- filtered_allele.data[, c(2, 1, 3:ncol(filtered_allele.data))]
 
