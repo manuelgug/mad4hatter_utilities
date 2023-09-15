@@ -338,7 +338,9 @@ if (!is.null(resmarkers_table)){
     print("No negative controls found. Skipping contaminants filter.")
     microhaps_filtered <- microhaps
   } else {
-    if (class(CFilteringMethod) =="data.frame") {
+    if (class(CFilteringMethod) =="data.frame") { ###SÓLO DA PROBLEMA CUANDO SE TRATA DE amp_max o amp_95!!!!!
+      #amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") AQUÍ VOY!!!!!
+      
       microhaps_2 <- merge(microhaps, CFilteringMethod, by = "locus", suffixes = c("", ".NEG_threshold"))
       microhaps_filtered <- microhaps[microhaps$Reads > microhaps_2$Reads.NEG_threshold, ]
       microhaps_filtered <- microhaps_filtered[, !(names(microhaps_filtered) %in% c("norm.reads.locus", "n.alleles"))] #remove old allele freqs and counts
