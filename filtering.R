@@ -340,10 +340,9 @@ if (!is.null(resmarkers_table)){
       
       CFilteringMethod_4<-CFilteringMethod_3 %>%
         group_by(locus) %>%
-        filter(Reads == max(Reads)) %>%
         slice(1) 
       
-      CFilteringMethod_4 <- CFilteringMethod_3 %>%
+      CFilteringMethod_4 <- CFilteringMethod_4 %>%
         separate(resmarker, into = c("gene", "position"), sep = "_")
       
       #point to microhap
@@ -361,7 +360,8 @@ if (!is.null(resmarkers_table)){
       }
       
       microhaps_filtered <- microhaps[microhaps$Reads > microhaps$NEG_threshold, ]
-      
+      microhaps_filtered <- microhaps_filtered[complete.cases(microhaps_filtered$MicrohapIndex), ]
+          
     } else {
       microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ]
       
