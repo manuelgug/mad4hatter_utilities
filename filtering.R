@@ -7,7 +7,7 @@ suppressPackageStartupMessages(library(gridExtra))
 # Define and parse command-line arguments
 option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="test_data/allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "test_data/resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "test_data/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
@@ -319,40 +319,58 @@ plot_rest <- ggplot(plot_data[plot_data$alleles != "total_alleles", ], aes(x = C
 ### MICROHAPS FILTERING ###
 if (!is.null(resmarkers_table)){
   microhaps<-read.csv(resmarkers_table, sep ="\t")
-  microhaps$locus<- paste(microhaps$Gene, microhaps$CodonID, sep = "_") #locus column
-  
-  # calculate read initial counts and allele freqs
-  microhaps <- microhaps %>%
-    group_by(SampleID,locus) %>%
-    mutate(norm.reads.locus = Reads/sum(Reads)) %>%
-    mutate(n.alleles = n())
-  
+  microhaps$microhap<- paste(microhaps$Gene, microhaps$MicrohapIndex, sep = "_") #resmarker column
   
   ## contaminants filtering
-  if (class(CFilteringMethod)=="data.frame"){
-    colnames(CFilteringMethod)[2]<-"Reads"
-  }
-  
-  
   if (is.null(CFilteringMethod)) {
     print("No negative controls found. Skipping contaminants filter.")
     microhaps_filtered <- microhaps
   } else {
     if (class(CFilteringMethod) =="data.frame") { ###SÓLO DA PROBLEMA CUANDO SE TRATA DE amp_max o amp_95!!!!!
-      #amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") AQUÍ VOY!!!!!
+      amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
       
-      microhaps_2 <- merge(microhaps, CFilteringMethod, by = "locus", suffixes = c("", ".NEG_threshold"))
-      microhaps_filtered <- microhaps[microhaps$Reads > microhaps_2$Reads.NEG_threshold, ]
-      microhaps_filtered <- microhaps_filtered[, !(names(microhaps_filtered) %in% c("norm.reads.locus", "n.alleles"))] #remove old allele freqs and counts
+      colnames(CFilteringMethod)[2]<-"Reads"
+      
+      CFilteringMethod_2 <- merge(CFilteringMethod, amp_res_eq[, c("resmarker", "locus")], by = "locus", all.x = TRUE) #add locus
+      CFilteringMethod_2<-CFilteringMethod_2[!is.na(CFilteringMethod_2$resmarker),] #keep resmarkers only
+      
+      CFilteringMethod_3<-CFilteringMethod_2 %>%
+        group_by(resmarker) %>%
+        filter(Reads == max(Reads))
+      
+      CFilteringMethod_4<-CFilteringMethod_3 %>%
+        group_by(locus) %>%
+        filter(Reads == max(Reads)) %>%
+        slice(1) 
+      
+      CFilteringMethod_4 <- CFilteringMethod_3 %>%
+        separate(resmarker, into = c("gene", "position"), sep = "_")
+      
+      #point to microhap
+      
+      microhaps$NEG_threshold <- NA
+      
+      # Loop through rows of CFilteringMethod_4
+      for (i in 1:nrow(CFilteringMethod_4)) {
+        # Check if both 'gene' and 'position' are found in 'microhap' cell
+        match_rows <- grepl(CFilteringMethod_4$gene[i], microhaps$microhap) &
+          grepl(CFilteringMethod_4$position[i], microhaps$microhap)
+        
+        # Fill 'NEG_threshold' with 'Reads' where there's a match
+        microhaps$NEG_threshold[match_rows] <- CFilteringMethod_4$Reads[i]
+      }
+      
+      microhaps_filtered <- microhaps[microhaps$Reads > microhaps$NEG_threshold, ]
+      
     } else {
       microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ]
-      microhaps_filtered <- microhaps_filtered[, !(names(microhaps_filtered) %in% c("norm.reads.locus", "n.alleles"))] #remove old allele freqs and counts
+      
     }
   }
   
   # recalculate read counts and allele freqs
   microhaps_filtered <- microhaps_filtered %>%
-    group_by(SampleID,locus) %>%
+    group_by(SampleID,microhap) %>%
     mutate(norm.reads.locus = Reads/sum(Reads)) %>%
     mutate(n.alleles = n())
   
@@ -360,9 +378,9 @@ if (!is.null(resmarkers_table)){
   microhaps_filtered <- microhaps_filtered[microhaps_filtered$norm.reads.locus > MAF, ]
   microhaps_filtered <- microhaps_filtered[, !(names(microhaps_filtered) %in% c("n.alleles"))] #remove old allele counts
   
-  # recalculate allele counts based on remaining alleles
+  # recalculate allele counts based on remaining alleless
   microhaps_filtered <- microhaps_filtered %>%
-    group_by(SampleID,locus) %>%
+    group_by(SampleID,microhap) %>%
     #   mutate(norm.reads.locus = reads/sum(reads))%>%
     mutate(n.alleles = n())
   
@@ -370,6 +388,8 @@ if (!is.null(resmarkers_table)){
   
   base_filename2 <- basename(resmarkers_table)
   filename2 <- tools::file_path_sans_ext(base_filename2)
+  
+  microhaps_filtered <- microhaps_filtered[, !names(microhaps_filtered) %in% c("microhap", "NEG_threshold")]
   
   write.table(microhaps_filtered,file=paste0(filename2, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 }
