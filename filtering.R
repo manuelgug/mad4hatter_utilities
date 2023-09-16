@@ -98,11 +98,11 @@ if (any(grepl("(?i)Neg", allele.data$sampleID))) {
   # Create the ggplot with reordered levels and fill by Category
   neg_plot_amps <- ggplot(NEG_thresholds_max_ordered, aes(x = locus, y = reads, fill = Category)) +
     geom_bar(stat = "identity") +
-    labs(x = "Amplicon", y = "Reads") +
+    labs(x = "Amplicon", y = "Reads in Neg controls") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 6))
   
-  ggsave(paste0(filename, "_", "max_reads_per_amplicon.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
+  ggsave(paste0(filename, "_", "max_reads_per_amplicon_in_neg_controls.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
   
 } else {
   
@@ -338,11 +338,7 @@ if (!is.null(resmarkers_table)){
         group_by(resmarker) %>%
         filter(Reads == max(Reads))
       
-      CFilteringMethod_4<-CFilteringMethod_3 %>%
-        group_by(locus) %>%
-        slice(1) 
-      
-      CFilteringMethod_4 <- CFilteringMethod_4 %>%
+      CFilteringMethod_4 <- CFilteringMethod_2 %>%
         separate(resmarker, into = c("gene", "position"), sep = "_")
       
       #point to microhap
@@ -360,7 +356,6 @@ if (!is.null(resmarkers_table)){
       }
       
       microhaps_filtered <- microhaps[microhaps$Reads > microhaps$NEG_threshold, ]
-      microhaps_filtered <- microhaps_filtered[complete.cases(microhaps_filtered$MicrohapIndex), ]
           
     } else {
       microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ]
