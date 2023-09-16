@@ -334,18 +334,16 @@ if (!is.null(resmarkers_table)){
       CFilteringMethod_2 <- merge(CFilteringMethod, amp_res_eq[, c("resmarker", "locus")], by = "locus", all.x = TRUE) #add locus
       CFilteringMethod_2<-CFilteringMethod_2[!is.na(CFilteringMethod_2$resmarker),] #keep resmarkers only
       
-      CFilteringMethod_3<-CFilteringMethod_2 %>%
+      CFilteringMethod_3<-CFilteringMethod_2 %>% #CFilteringMethod_3 is needed for resmarkers_table.txt filtering. EASY!
         group_by(resmarker) %>%
         filter(Reads == max(Reads))
       
       CFilteringMethod_4 <- CFilteringMethod_2 %>%
         separate(resmarker, into = c("gene", "position"), sep = "_")
       
-      #point to microhap
-      
+      # Loop through rows of CFilteringMethod_4 and add NEG_thresholds to each row
       microhaps$NEG_threshold <- NA
       
-      # Loop through rows of CFilteringMethod_4
       for (i in 1:nrow(CFilteringMethod_4)) {
         # Check if both 'gene' and 'position' are found in 'microhap' cell
         match_rows <- grepl(CFilteringMethod_4$gene[i], microhaps$microhap) &
@@ -358,12 +356,11 @@ if (!is.null(resmarkers_table)){
       microhaps_filtered <- microhaps[microhaps$Reads > microhaps$NEG_threshold, ]
           
     } else {
-      microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ]
-      
+      microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ] #single threshold for all amplicons
     }
   }
   
-  # recalculate read counts and allele freqs
+  # calculate allele counts and allele freqs
   microhaps_filtered <- microhaps_filtered %>%
     group_by(SampleID,microhap) %>%
     mutate(norm.reads.locus = Reads/sum(Reads)) %>%
@@ -373,14 +370,13 @@ if (!is.null(resmarkers_table)){
   microhaps_filtered <- microhaps_filtered[microhaps_filtered$norm.reads.locus > MAF, ]
   microhaps_filtered <- microhaps_filtered[, !(names(microhaps_filtered) %in% c("n.alleles"))] #remove old allele counts
   
-  # recalculate allele counts based on remaining alleless
+  # recalculate allele counts based on remaining alleles
   microhaps_filtered <- microhaps_filtered %>%
     group_by(SampleID,microhap) %>%
     #   mutate(norm.reads.locus = reads/sum(reads))%>%
     mutate(n.alleles = n())
   
   # EXPORT
-  
   base_filename2 <- basename(resmarkers_table)
   filename2 <- tools::file_path_sans_ext(base_filename2)
   
@@ -434,6 +430,7 @@ if (!is.null(use_case_amps)){
   ggsave(paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_USE_CASE_report.png"), fig, width = 21, height = 10.5, dpi = 300)
   
 }else{
+  
   #### EXPORTS WITHOUT USE CASE####
   
   #report
