@@ -4,30 +4,10 @@ suppressPackageStartupMessages(library(dplyr))
 
 # Define the command-line arguments
 option_list <- list(
-  make_option(
-    c("--input_res"),
-    type = "character",
-    help = "Input file path (e.g., resmarker_table.txt)"
-#   , default ="resmarker_table.txt"
-  ),
-  make_option(
-    c("--output_res"),
-    type = "character",
-    help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)"
-   , default ="resmarker_table_old_format.csv"
-  ),
-make_option(
-  c("--input_haps"),
-  type = "character",
-  help = "Input file path (e.g., resmarker_microhap_table.txt)"
-  #   , default ="resmarker_microhap_table.txt"
-  ),
-  make_option(
-    c("--output_haps"),
-    type = "character",
-    help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)"
-     , default ="resmarker_microhap_table_old_format.csv"
-  )
+  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="resmarker_table_amp_max_0.01_filtered.csv"),
+  make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="resmarker_table_old_format.csv"),
+  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="resmarker_microhap_table_amp_max_0.01_filtered.csv"),
+  make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="resmarker_microhap_table_old_format.csv")
 )
 
 # Parse the command-line arguments
@@ -39,7 +19,7 @@ opt <- parse_args(opt_parser)
 
 # Read the input data
 if (!is.null(opt$input_res)) {
-  resmarkers <- read.table(opt$input_res, header = TRUE)
+  resmarkers <- read.csv(opt$input_res, header = TRUE)
 
   #sum reads when needed
   # Group rows by all columns except the last one
@@ -86,6 +66,9 @@ if (!is.null(opt$input_res)) {
       AARefAlt = NA,
       Reads = NA,
       resmarker = elements$Var2,
+      locus =NA,
+      norm.reads.locus = NA,
+      n.alleles =NA,
       resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
       contents = "[NA]"
     )
@@ -140,7 +123,7 @@ if (!is.null(opt$input_res)) {
 
 # Read the input data
 if (!is.null(opt$input_haps)) {
-  resmarkers <- read.table(opt$input_haps, header = TRUE)
+  resmarkers <- read.table(opt$input_haps, header = TRUE, sep =",")
   
   #sum reads when needed
   # Group rows by all columns except the last one
@@ -182,6 +165,8 @@ if (!is.null(opt$input_haps)) {
       Microhaplotype = NA,
       MicrohapRefAlt = NA,
       Reads = NA,
+      norm.reads.locus = NA,
+      n.alleles =NA,
       resmarker = elements$Var2,
       resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
       contents = "[NA]"
