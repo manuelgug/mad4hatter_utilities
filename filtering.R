@@ -7,7 +7,8 @@ suppressPackageStartupMessages(library(gridExtra))
 # Define and parse command-line arguments
 option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="test_data/allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "test_data/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "test_data/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "test_data/resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
@@ -18,11 +19,12 @@ opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 allele_table <- opt$allele_table
-resmarkers_table <- opt$resmarkers_table
+microhaps_table <- opt$microhaps_table
 CFilteringMethod <- opt$CFilteringMethod
 MAF <- opt$MAF
 exclude_file<- opt$exclude_file
 use_case_amps<- opt$use_case_amps
+resmarkers_table<- opt$resmarkers_table
 
 #import allele table
 allele.data<-read.csv(allele_table, sep ="\t")
@@ -105,6 +107,8 @@ if (any(grepl("(?i)Neg", allele.data$sampleID))) {
   ggsave(paste0(filename, "_", "max_reads_per_amplicon_in_neg_controls.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
   
 } else {
+  
+  print("No negative controls found. Skipping contaminants filter.")
   
   NEG_threshold_max <- 0
   NEG_threshold_q95 <- 0
@@ -281,7 +285,6 @@ filtered_allele.data <- filtered_allele.data[, c(2, 1, 3:ncol(filtered_allele.da
 write.table(filtered_allele.data,file=paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 
 
-
 ## VISUALIZATION ##
 
 report_2 <- report[1:5,]
@@ -317,16 +320,16 @@ plot_rest <- ggplot(plot_data[plot_data$alleles != "total_alleles", ], aes(x = C
 
 
 ### MICROHAPS FILTERING ###
-if (!is.null(resmarkers_table)){
-  microhaps<-read.csv(resmarkers_table, sep ="\t")
+if (!is.null(microhaps_table)){
+  microhaps<-read.csv(microhaps_table, sep ="\t")
   microhaps$microhap<- paste(microhaps$Gene, microhaps$MicrohapIndex, sep = "_") #resmarker column
   
   ## contaminants filtering
   if (is.null(CFilteringMethod)) {
-    print("No negative controls found. Skipping contaminants filter.")
+    print("No negative controls found. Skipping contaminants filter for microhaps")
     microhaps_filtered <- microhaps
   } else {
-    if (class(CFilteringMethod) =="data.frame") { ###SÓLO DA PROBLEMA CUANDO SE TRATA DE amp_max o amp_95!!!!!
+    if (class(CFilteringMethod) =="data.frame") {
       amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
       
       colnames(CFilteringMethod)[2]<-"Reads"
@@ -377,12 +380,70 @@ if (!is.null(resmarkers_table)){
     mutate(n.alleles = n())
   
   # EXPORT
-  base_filename2 <- basename(resmarkers_table)
+  base_filename2 <- basename(microhaps_table)
   filename2 <- tools::file_path_sans_ext(base_filename2)
   
   microhaps_filtered <- microhaps_filtered[, !names(microhaps_filtered) %in% c("microhap", "NEG_threshold")]
   
   write.table(microhaps_filtered,file=paste0(filename2, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+}  
+
+### RESMARKERS FILTERING ####
+if (!is.null(resmarkers_table)){
+  resmarkers<-read.csv(resmarkers_table, sep ="\t")
+  resmarkers$resmarker<- paste(resmarkers$Gene, resmarkers$CodonID, sep = "_") #resmarker column
+  
+  ## contaminants filtering
+  if (is.null(CFilteringMethod)) {
+    print("No negative controls found. Skipping contaminants filter for resmarkers.")
+    resmarkers_filtered <- resmarkers
+  } else {
+    if (class(CFilteringMethod) =="data.frame") {
+     
+      # Loop through rows of CFilteringMethod_4 and add NEG_thresholds to each row
+      resmarkers$NEG_threshold <- NA
+      resmarkers$locus<-NA
+      
+      for (i in 1:nrow(CFilteringMethod_3)) {
+        # Check if both 'gene' and 'position' are found in 'microhap' cell
+        match_rows <- grepl(CFilteringMethod_3$resmarker[i], resmarkers$resmarker)
+        
+        # Fill 'NEG_threshold' with 'Reads' and 'locus' woth amplicon name where there's a match
+        resmarkers$NEG_threshold[match_rows] <- CFilteringMethod_3$Reads[i]
+        resmarkers$locus[match_rows] <- CFilteringMethod_3$locus[i]
+      }
+      
+      resmarkers_filtered <- resmarkers[resmarkers$Reads > resmarkers$NEG_threshold, ]
+      
+    } else {
+      resmarkers_filtered <- resmarkers[resmarkers$Reads > CFilteringMethod, ] #single threshold for all amplicons
+       
+    }
+    
+    # calculate allele counts and allele freqs
+    resmarkers_filtered <- resmarkers_filtered %>%
+      group_by(SampleID,locus, resmarker) %>%
+      mutate(norm.reads.locus = Reads/sum(Reads)) %>%
+      mutate(n.alleles = n())
+    
+    #frequency filtering
+    resmarkers_filtered <- resmarkers_filtered[resmarkers_filtered$norm.reads.locus > MAF, ]
+    resmarkers_filtered <- resmarkers_filtered[, !(names(resmarkers_filtered) %in% c("n.alleles"))] #remove old allele counts
+    
+    # recalculate allele counts based on remaining alleles
+    resmarkers_filtered <- resmarkers_filtered %>%
+      group_by(SampleID,locus, resmarker) %>%
+      #   mutate(norm.reads.locus = reads/sum(reads))%>%
+      mutate(n.alleles = n())
+    
+    # EXPORT
+    base_filename3 <- basename(resmarkers_table)
+    filename3 <- tools::file_path_sans_ext(base_filename3)
+    
+    resmarkers_filtered <- resmarkers_filtered[, !names(resmarkers_filtered) %in% c("microhap", "NEG_threshold")]
+    
+    write.table(resmarkers_filtered,file=paste0(filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+  }
 }
 
 
