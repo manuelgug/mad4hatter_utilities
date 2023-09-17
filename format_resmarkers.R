@@ -21,6 +21,8 @@ opt <- parse_args(opt_parser)
 if (!is.null(opt$input_res)) {
   resmarkers <- read.csv(opt$input_res, header = TRUE)
 
+  resmarkers <- resmarkers[, !colnames(resmarkers) %in% c("norm.reads.locus", "n.alleles", "locus")]
+  
   #sum reads when needed
   # Group rows by all columns except the last one
   resmarkers <- resmarkers %>%
@@ -66,9 +68,6 @@ if (!is.null(opt$input_res)) {
       AARefAlt = NA,
       Reads = NA,
       resmarker = elements$Var2,
-      locus =NA,
-      norm.reads.locus = NA,
-      n.alleles =NA,
       resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
       contents = "[NA]"
     )
@@ -125,6 +124,8 @@ if (!is.null(opt$input_res)) {
 if (!is.null(opt$input_haps)) {
   resmarkers <- read.table(opt$input_haps, header = TRUE, sep =",")
   
+  resmarkers <- resmarkers[, !colnames(resmarkers) %in% c("norm.reads.locus", "n.alleles")]
+  
   #sum reads when needed
   # Group rows by all columns except the last one
   resmarkers <- resmarkers %>%
@@ -165,8 +166,6 @@ if (!is.null(opt$input_haps)) {
       Microhaplotype = NA,
       MicrohapRefAlt = NA,
       Reads = NA,
-      norm.reads.locus = NA,
-      n.alleles =NA,
       resmarker = elements$Var2,
       resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
       contents = "[NA]"
