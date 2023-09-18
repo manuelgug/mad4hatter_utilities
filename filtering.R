@@ -110,6 +110,8 @@ if (any(grepl("(?i).*Neg", allele.data$sampleID))) {
   
   print("No negative controls found. Skipping contaminants filter.")
   
+  neg_controls <- NULL
+  
   NEG_threshold_max <- 0
   NEG_threshold_q95 <- 0
   NEG_thresholds_max <- 0
@@ -325,7 +327,7 @@ if (!is.null(microhaps_table)){
   microhaps$microhap<- paste(microhaps$Gene, microhaps$MicrohapIndex, sep = "_") #resmarker column
   
   ## contaminants filtering
-  if (is.null(CFilteringMethod)) {
+  if (is.null(neg_controls)) {
     print("No negative controls found. Skipping contaminants filter for microhaps")
     microhaps_filtered <- microhaps
   } else {
@@ -394,7 +396,7 @@ if (!is.null(resmarkers_table)){
   resmarkers$resmarker<- paste(resmarkers$Gene, resmarkers$CodonID, sep = "_") #resmarker column
   
   ## contaminants filtering
-  if (is.null(CFilteringMethod)) {
+  if (is.null(neg_controls)) {
     print("No negative controls found. Skipping contaminants filter for resmarkers.")
     resmarkers_filtered <- resmarkers
   } else {
