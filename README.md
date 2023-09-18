@@ -9,7 +9,7 @@ Compilation of scripts to work with mad4hatter's outputs
 ### Usage
 
 ```bash
-Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_table PATH] [--CFilteringMethod METHOD] [--MAF VALUE] [--exclude_file PATH] [--use_case_amps PATH]
+Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_table PATH] [--CFilteringMethod METHOD] [--MAF VALUE] [--exclude_file PATH] [--use_case_amps PATH] [--outdir PATH]
 ```
 
 - `--allele_table`: Path to the input allele table.
@@ -30,6 +30,8 @@ Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_
 - `--exclude_file`: Path to the file containing sampleIDs to exclude (optional).
   
 - `--use_case_amps`: Path to the file containing IDs of the use case amplicons (optional).
+
+- `--outdir`: Name of directory where results will be stored.
 
 ### Nomenclature of controls
 
