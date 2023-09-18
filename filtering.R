@@ -9,7 +9,7 @@ option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="TES22_NextSeq01_RESULTS_v0.1.8/allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "TES22_NextSeq01_RESULTS_v0.1.8/resistance_marker_module/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "TES22_NextSeq01_RESULTS_v0.1.8/resistance_marker_module//resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
+  make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
   make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case")
@@ -419,9 +419,14 @@ if (!is.null(resmarkers_table)){
       
     } else {
       resmarkers_filtered <- resmarkers[resmarkers$Reads > CFilteringMethod, ] #single threshold for all amplicons
+      
+      #add locus column
+      amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
+      resmarkers_filtered<-merge(resmarkers_filtered, amp_res_eq, by = "resmarker", all.x = TRUE)
+      
     }
   }
-  
+
     # calculate allele counts and allele freqs
     resmarkers_filtered <- resmarkers_filtered %>%
       group_by(SampleID,locus, resmarker) %>%
@@ -445,7 +450,8 @@ if (!is.null(resmarkers_table)){
     resmarkers_filtered <- resmarkers_filtered[, !names(resmarkers_filtered) %in% c("microhap", "NEG_threshold")]
     
     write.table(resmarkers_filtered,file=paste0(filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
-  }
+}
+
 
 
 ### Specific use case report Are there amplicons from use_case on false_positives_initial, false_positives_1, false_positives_2?
