@@ -9,10 +9,11 @@ option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="TES22_NextSeq01_RESULTS_v0.1.8/allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "TES22_NextSeq01_RESULTS_v0.1.8/resistance_marker_module/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "TES22_NextSeq01_RESULTS_v0.1.8/resistance_marker_module//resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
+  make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
-  make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case")
+  make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case"),
+  make_option(c("--outdir"), type = "character", default = "filtered_results", help = "Path to output directory")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -25,6 +26,12 @@ MAF <- opt$MAF
 exclude_file<- opt$exclude_file
 use_case_amps<- opt$use_case_amps
 resmarkers_table<- opt$resmarkers_table
+outdir<- opt$outdir
+
+# Create outdir if it doesn't already exist
+if (!file.exists(outdir)) {
+  dir.create(outdir)
+}
 
 #import allele table
 allele.data<-read.csv(allele_table, sep ="\t")
@@ -66,7 +73,7 @@ if (any(grepl("(?i).*Neg", allele.data$sampleID))) {
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ggsave(paste0(filename, "_", "max_reads_per_neg_control.png"), neg_plot, width = 8, height = 8, dpi = 300, bg = "white")
+  ggsave(paste0(outdir, "/", filename, "_", "max_reads_per_neg_control.png"), neg_plot, width = 8, height = 8, dpi = 300, bg = "white")
   
   
   NEG_threshold_max <- max(neg_controls$reads) # max threshold across amplicons
@@ -104,7 +111,7 @@ if (any(grepl("(?i).*Neg", allele.data$sampleID))) {
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 6))
   
-  ggsave(paste0(filename, "_", "max_reads_per_amplicon_in_neg_controls.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
+  ggsave(paste0(outdir, "/", filename, "_", "max_reads_per_amplicon_in_neg_controls.png"), neg_plot_amps, width = 22, height = 10, dpi = 300, bg = "white")
   
 } else {
   
@@ -284,7 +291,7 @@ colnames(report)[4]<-paste0("frequency_filter_", MAF)
 
 filtered_allele.data <- filtered_allele.data[, c(2, 1, 3:ncol(filtered_allele.data))]
 
-write.table(filtered_allele.data,file=paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+write.table(filtered_allele.data,file=paste0(outdir, "/", filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 
 
 ## VISUALIZATION ##
@@ -387,7 +394,7 @@ if (!is.null(microhaps_table)){
   
   microhaps_filtered <- microhaps_filtered[, !names(microhaps_filtered) %in% c("microhap", "NEG_threshold")]
   
-  write.table(microhaps_filtered,file=paste0(filename2, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+  write.table(microhaps_filtered,file=paste0(outdir, "/", filename2, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 }  
 
 ### RESMARKERS FILTERING ####
@@ -449,7 +456,7 @@ if (!is.null(resmarkers_table)){
     
     resmarkers_filtered <- resmarkers_filtered[, !names(resmarkers_filtered) %in% c("microhap", "NEG_threshold")]
     
-    write.table(resmarkers_filtered,file=paste0(filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+    write.table(resmarkers_filtered,file=paste0(outdir, "/", filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 }
 
 
@@ -468,7 +475,7 @@ if (!is.null(use_case_amps)){
   rownames(use_case_report)[9]<-"false_positives_use_case_amplicons"
   
   #report with use case
-  write.table(use_case_report,file=paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_USE_CASE_report.csv"),quote=F,sep=",",col.names=T,row.names=F)
+  write.table(use_case_report,file=paste0(outdir, "/", filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_USE_CASE_report.csv"),quote=F,sep=",",col.names=T,row.names=F)
   
   use_case_report_2 <- use_case_report[9,]
   colnames(use_case_report_2)[1]<-"amps"
@@ -495,16 +502,16 @@ if (!is.null(use_case_amps)){
   
   #plot with use case
   fig<-grid.arrange(plot_total, plot_rest, plot_use_case, ncol = 3)
-  ggsave(paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_USE_CASE_report.png"), fig, width = 21, height = 10.5, dpi = 300)
+  ggsave(paste0(outdir, "/", filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_USE_CASE_report.png"), fig, width = 21, height = 10.5, dpi = 300)
   
 }else{
   
   #### EXPORTS WITHOUT USE CASE####
   
   #report
-  write.table(report,file=paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_report.csv"),quote=F,sep=",",col.names=T,row.names=F)
+  write.table(report,file=paste0(outdir, "/", filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_report.csv"),quote=F,sep=",",col.names=T,row.names=F)
   
   #plot
   fig<-grid.arrange(plot_total, plot_rest, ncol = 2)
-  ggsave(paste0(filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_report.png"), fig, width = 14, height = 7, dpi = 300)
+  ggsave(paste0(outdir, "/", filename, "_", CFilteringMethod_, "_", as.character(MAF), "_filter_report.png"), fig, width = 14, height = 7, dpi = 300)
 }
