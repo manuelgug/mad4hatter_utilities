@@ -341,7 +341,7 @@ if (!is.null(microhaps_table)){
         group_by(resmarker) %>%
         filter(Reads == max(Reads))
       
-      CFilteringMethod_4 <- CFilteringMethod_2 %>%
+      CFilteringMethod_4 <- CFilteringMethod_3 %>%
         separate(resmarker, into = c("gene", "position"), sep = "_")
       
       # Loop through rows of CFilteringMethod_4 and add NEG_thresholds to each row
