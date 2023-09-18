@@ -18,12 +18,12 @@ Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_
 
 - `--resmarkers_table`: Path to the input resmarkers table (optional).
 
-- `--CFilteringMethod`: Contaminants filtering method. Options: "global_max", "global_q95", "amp_max", "amp_q95". Default: "global_max".
+- `--CFilteringMethod`: Contaminants filtering method. Options: *global_max*, *global_q95*, *amp_max*, *amp_q95*. Default: *global_max*.
 
-  - "global_max": Single threshold derived from the maximum read count from all amplicons across negative controls.
-  - "global_q95": Single threshold derived from the 95th percentile of read counts from all amplicons across negative controls.
-  - "amp_max": Amplicon-specific thresholds derived from the maximum read count for each amplicon across negative controls.
-  - "amp_q95": Amplicon-specific thresholds derived from the 95th percentile of read counts for each amplicon across negative controls.
+  - *global_max*: Single threshold derived from the maximum read count from all amplicons across negative controls.
+  - *global_q95*: Single threshold derived from the 95th percentile of read counts from all amplicons across negative controls.
+  - *amp_max*: Amplicon-specific thresholds derived from the maximum read count for each amplicon across negative controls.
+  - *amp_q95*: Amplicon-specific thresholds derived from the 95th percentile of read counts for each amplicon across negative controls.
 
 - `--MAF`: Minimum allele frequency filter. Default: 0.
 
@@ -31,7 +31,7 @@ Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_
   
 - `--use_case_amps`: Path to the file containing IDs of the use case amplicons (optional).
 
-- `--outdir`: Name of directory where results will be stored.
+- `--outdir`: Name of the directory where results will be stored.
 
 ### Nomenclature of controls
 
