@@ -50,9 +50,9 @@ if (!is.null(exclude_file)) {
 
 
 # 1) calculate contaminants filtering thresholds from negative controls
-if (any(grepl("(?i)Neg", allele.data$sampleID))) {
+if (any(grepl("(?i).*Neg", allele.data$sampleID))) {
   
-  neg_controls_index <- grepl("(?i)Neg", allele.data$sampleID)
+  neg_controls_index <- grepl("(?i).*Neg", allele.data$sampleID)
   neg_controls <- allele.data[neg_controls_index, ]
   
   #PLOT MAX READS PER CONTROL
