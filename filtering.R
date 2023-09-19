@@ -9,7 +9,7 @@ option_list <- list(
   make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="NMCP21_MiSeq01_RESULTS_v0.1.8//allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "NMCP21_MiSeq01_RESULTS_v0.1.8/resistance_marker_module/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "NMCP21_MiSeq01_RESULTS_v0.1.8/resistance_marker_module//resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--CFilteringMethod"), type = "character", default = "amp_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
+  make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
   make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
   make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case"),
