@@ -4,10 +4,10 @@ suppressPackageStartupMessages(library(dplyr))
 
 # Define the command-line arguments
 option_list <- list(
-  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="resmarker_table_amp_max_0.01_filtered.csv"),
-  make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="resmarker_table_old_format.csv"),
-  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="resmarker_microhap_table_amp_max_0.01_filtered.csv"),
-  make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="resmarker_microhap_table_old_format.csv")
+  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="filtered_results/resmarker_table_global_max_0_filtered.csv"),
+  make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="filtered_results/resmarker_table_old_format.csv"),
+  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="filtered_results/resmarker_microhap_table_global_max_0_filtered.csv"),
+  make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="filtered_results/resmarker_microhap_table_old_format.csv")
 )
 
 # Parse the command-line arguments
@@ -25,14 +25,14 @@ if (!is.null(opt$input_res)) {
   
   #sum reads when needed
   # Group rows by all columns except the last one
-  resmarkers <- resmarkers %>%
-    group_by(across(-Reads)) %>%
-    # Sum the last column within each group and replace the original values
-    mutate(Reads = sum(as.numeric(Reads))) %>%
-    # Remove duplicates
-    distinct() %>%
-    # Reset grouping
-    ungroup()
+  #resmarkers <- resmarkers %>%
+  #  group_by(across(-Reads)) %>%
+  #  # Sum the last column within each group and replace the original values
+  #  mutate(Reads = sum(as.numeric(Reads))) %>%
+  #  # Remove duplicates
+  #  distinct() %>%
+  #  # Reset grouping
+  #  ungroup()
   
   resmarkers<-as.data.frame(resmarkers)
   
@@ -82,6 +82,19 @@ if (!is.null(opt$input_res)) {
   
   # Sort resmarkers by resmarker_sampleID and AARefAlt
   resmarkers <- resmarkers[order(resmarkers$resmarker_sampleID, resmarkers$AARefAlt, decreasing = F), ]
+  
+  #### for rows that have the same string in resmarker_sampleID, delete the one with the lowest value in Reads (this is for amplicons from the same region)
+  # Subset rows with NA in Reads
+  na_rows <- resmarkers %>% filter(is.na(Reads))
+  
+  # Filter rows by group based on non-NA values
+  resmarkers <- resmarkers %>%
+    group_by(resmarker_sampleID) %>%
+    filter(Reads == max(Reads)) %>%
+    ungroup()
+  
+  # Combine the two subsets
+  resmarkers <- bind_rows(resmarkers, na_rows)
   
   #aggregate contents by resmarker_sampleID 
   agg_contents <- aggregate(contents ~ resmarker_sampleID, data = resmarkers, FUN = paste, collapse = ", ")
