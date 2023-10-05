@@ -6,12 +6,12 @@ suppressPackageStartupMessages(library(gridExtra))
 
 # Define and parse command-line arguments
 option_list <- list(
-  make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="NMCP21_MiSeq01_RESULTS_v0.1.8//allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "NMCP21_MiSeq01_RESULTS_v0.1.8/resistance_marker_module/resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
-  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "NMCP21_MiSeq01_RESULTS_v0.1.8/resistance_marker_module//resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--allele_table"), type = "character", help = "Path to the allele table", default ="allele_data.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--microhaps_table"), type = "character", help = "Path to the resmarkers microhap table", default = "resmarker_microhap_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
+  make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
-  make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"),
+  make_option(c("--exclude_file"), type = "character", default = "exclude_samples.txt", help = "Path to the file containing sampleIDs to exclude"), #CAMBIAR!!!
   make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case"),
   make_option(c("--outdir"), type = "character", default = "filtered_results", help = "Path to output directory")
 )
@@ -51,8 +51,8 @@ allele.data <- merge(allele.data, amp_cats[, c("locus.pool", "Category")], by.x 
 
 ## 0) Exclude samples based on sampleIDs provided in a text file if the 'exclude' argument is provided
 if (!is.null(exclude_file)) {
-    remove_samples <- read.csv(exclude_file, sep = "\t", header = FALSE)
-    allele.data <- subset(allele.data, !(sampleID %in% remove_samples$V1))
+  remove_samples <- read.csv(exclude_file, sep = "\t", header = FALSE)
+  allele.data <- subset(allele.data, !(sampleID %in% remove_samples$V1))
 } 
 
 
@@ -366,7 +366,7 @@ if (!is.null(microhaps_table)){
       }
       
       microhaps_filtered <- microhaps[microhaps$Reads > microhaps$NEG_threshold, ]
-          
+      
     } else {
       microhaps_filtered <- microhaps[microhaps$Reads > CFilteringMethod, ] #single threshold for all amplicons
     }
@@ -401,6 +401,7 @@ if (!is.null(microhaps_table)){
 if (!is.null(resmarkers_table)){
   resmarkers<-read.csv(resmarkers_table, sep ="\t")
   resmarkers$resmarker<- paste(resmarkers$Gene, resmarkers$CodonID, sep = "_") #resmarker column
+  resmarkers$locus<- paste(resmarkers$resmarker, resmarkers$CodonStart, sep = "_") #locus column (BAND AID FIX BECAUSE THERE'S NO LOCUS COLUMN AS OUTPUT!)
   
   ## contaminants filtering
   if (is.null(neg_controls)) {
@@ -408,7 +409,7 @@ if (!is.null(resmarkers_table)){
     resmarkers_filtered <- resmarkers
   } else {
     if (class(CFilteringMethod) =="data.frame") {
-     
+      
       # Loop through rows of CFilteringMethod_4 and add NEG_thresholds to each row
       resmarkers$NEG_threshold <- NA
       resmarkers$locus<-NA
@@ -428,39 +429,35 @@ if (!is.null(resmarkers_table)){
       resmarkers_filtered <- resmarkers[resmarkers$Reads > CFilteringMethod, ] #single threshold for all amplicons
       
       #add locus column
-      amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
-      resmarkers_filtered<-merge(resmarkers_filtered, amp_res_eq, by = "resmarker", all.x = TRUE)
+      #amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
+      #resmarkers_filtered<-merge(resmarkers_filtered, amp_res_eq, by = "resmarker", all.x = TRUE)
       
     }
   }
-
-  #add locus column
-  amp_res_eq<-read.csv("resources/amplicons_resmarkers_equivalence.csv") 
-  resmarkers_filtered<-merge(resmarkers_filtered, amp_res_eq, by = "resmarker", all.x = TRUE)  
   
   # calculate allele counts and allele freqs
-    resmarkers_filtered <- resmarkers_filtered %>%
-      group_by(SampleID,locus, resmarker) %>%
-      mutate(norm.reads.locus = Reads/sum(Reads)) %>%
-      mutate(n.alleles = n())
-    
-    #frequency filtering
-    resmarkers_filtered <- resmarkers_filtered[resmarkers_filtered$norm.reads.locus > MAF, ]
-    resmarkers_filtered <- resmarkers_filtered[, !(names(resmarkers_filtered) %in% c("n.alleles"))] #remove old allele counts
-    
-    # recalculate allele counts based on remaining alleles
-    resmarkers_filtered <- resmarkers_filtered %>%
-      group_by(SampleID,locus, resmarker) %>%
-      #   mutate(norm.reads.locus = reads/sum(reads))%>%
-      mutate(n.alleles = n())
-    
-    # EXPORT
-    base_filename3 <- basename(resmarkers_table)
-    filename3 <- tools::file_path_sans_ext(base_filename3)
-    
-    resmarkers_filtered <- resmarkers_filtered[, !names(resmarkers_filtered) %in% c("microhap", "NEG_threshold")]
-    
-    write.table(resmarkers_filtered,file=paste0(outdir, "/", filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
+  resmarkers_filtered <- resmarkers_filtered %>%
+    group_by(SampleID, locus, resmarker) %>%
+    mutate(norm.reads.locus = Reads/sum(Reads)) %>%
+    mutate(n.alleles = n())
+  
+  #frequency filtering
+  resmarkers_filtered <- resmarkers_filtered[resmarkers_filtered$norm.reads.locus > MAF, ]
+  resmarkers_filtered <- resmarkers_filtered[, !(names(resmarkers_filtered) %in% c("n.alleles"))] #remove old allele counts
+  
+  # recalculate allele counts based on remaining alleles
+  resmarkers_filtered <- resmarkers_filtered %>%
+    group_by(SampleID,locus, resmarker) %>%
+    #   mutate(norm.reads.locus = reads/sum(reads))%>%
+    mutate(n.alleles = n())
+  
+  # EXPORT
+  base_filename3 <- basename(resmarkers_table)
+  filename3 <- tools::file_path_sans_ext(base_filename3)
+  
+  resmarkers_filtered <- resmarkers_filtered[, !names(resmarkers_filtered) %in% c("microhap", "NEG_threshold")]
+  
+  write.table(resmarkers_filtered,file=paste0(outdir, "/", filename3, "_", CFilteringMethod_, "_", as.character(MAF), "_filtered.csv"),quote=F,sep=",",col.names=T,row.names=F)
 }
 
 
