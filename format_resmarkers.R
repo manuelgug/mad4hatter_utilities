@@ -4,9 +4,9 @@ suppressPackageStartupMessages(library(dplyr))
 
 # Define the command-line arguments
 option_list <- list(
-  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="filtered_results/resmarker_table_global_max_0_filtered.csv"),
+  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="HFS_22_03_RESULTS_v0.1.8_FILTERED//resmarker_table_global_max_0_filtered.csv"),
   make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="filtered_results/resmarker_table_old_format.csv"),
-  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="filtered_results/resmarker_microhap_table_global_max_0_filtered.csv"),
+  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="HFS_22_03_RESULTS_v0.1.8_FILTERED//resmarker_microhap_table_global_max_0_filtered.csv"),
   make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="filtered_results/resmarker_microhap_table_old_format.csv")
 )
 
@@ -89,7 +89,7 @@ if (!is.null(opt$input_res)) {
   
   # Filter rows by group based on non-NA values
   resmarkers <- resmarkers %>%
-    group_by(resmarker_sampleID) %>%
+    group_by(resmarker_sampleID, AA) %>%
     filter(Reads == max(Reads)) %>%
     ungroup()
   
@@ -216,3 +216,4 @@ if (!is.null(opt$input_haps)) {
   write.csv(new_df, opt$output_haps, row.names = TRUE)
   cat("Formatted haplotype data saved to", opt$output_haps, "\n")
 }
+
