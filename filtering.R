@@ -11,7 +11,7 @@ option_list <- list(
   make_option(c("--resmarkers_table"), type = "character", help = "Path to the resmarkers table", default = "resmarker_table.txt"), #QUITAR DEFAULT Y PONER default = NULL, 
   make_option(c("--CFilteringMethod"), type = "character", default = "global_max", help = "Contaminants filtering method: global_max, global_q95, amp_max, amp_q95"),
   make_option(c("--MAF"), type = "numeric", default = 0, help = "Minimum allele frequency; default 0"),
-  make_option(c("--exclude_file"), type = "character", default = "NULL", help = "Path to the file containing sampleIDs to exclude"), #CAMBIAR!!!
+  make_option(c("--exclude_file"), type = "character", default = NULL, help = "Path to the file containing sampleIDs to exclude"), #CAMBIAR!!!
   make_option(c("--use_case_amps"), type = "character", default = NULL, help = "Path to the file amplicons of your use case"),
   make_option(c("--outdir"), type = "character", default = "filtered_results", help = "Path to output directory")
 )
