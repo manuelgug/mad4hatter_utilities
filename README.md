@@ -67,3 +67,5 @@ Rscript format_resmarkers.R --input_res resmarkers_table.txt --output_res resmar
 
 
 ## Analyses and visualizations 📊 👀
+
+## K13 non-synonymous mutations screening
