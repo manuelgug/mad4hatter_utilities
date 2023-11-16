@@ -194,8 +194,9 @@ for (i in 1:nrow(aa_df)) {
 }
 
 nsym$ALT <- character(nrow(nsym))
+nsym$REF<- character(nrow(nsym))
 
-# Populate 'AA' column based on the coordinates in nsym
+# Populate 'ALT' column based on the coordinates in nsym
 for (i in 1:nrow(nsym)) {
   if (is.na(nsym$non_synonymous_codon[i])) {
     nsym$ALT[i] <- NA
@@ -203,6 +204,17 @@ for (i in 1:nrow(nsym)) {
     row_num <- as.numeric(nsym$rowname[i])
     col_num <- as.numeric(nsym$non_synonymous_codon[i])
     nsym$ALT[i] <- aa_df[row_num, col_num]
+  }
+}
+
+# Populate 'REF' column based on the coordinates in nsym
+for (i in 1:nrow(nsym)) {
+  if (!is.na(nsym$non_synonymous_codon[i])) {
+    row_num <- 1
+    col_num <- as.numeric(nsym$non_synonymous_codon[i])
+    nsym$REF[i] <- reference_seq_df[row_num, col_num]
+  } else {
+
   }
 }
 
@@ -215,7 +227,7 @@ unique_alleles_complete <- unique_alleles_complete[complete.cases(unique_alleles
 # Merge based on "locus" and "pseudo_cigar"
 merged_data <- merge(k13_amps_allele_data, unique_alleles_complete, by = c("locus", "pseudo_cigar"))
 
-merged_data<- merged_data[,c(-11,-14:-17)]
+merged_data<- merged_data[,c(-11,-15:-18)]
 
 #remove codons already know to be relevant for resistance
 known_resistance_codons <- as.numeric(sub("^[^-]*-[^-]*-(.*)$", "\\1", amp_data0$V5))
