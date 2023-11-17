@@ -61,6 +61,8 @@ lab_excel$SampleID <- gsub("NNA", NA, lab_excel$SampleID)
 lab_excel<- lab_excel %>%
   separate(Well, into = c("row_Well", "column_Well"), sep = "(?<=\\D)(?=\\d)", remove = FALSE)
 
+lab_excel <- lab_excel %>%
+  mutate(SampleID = ifelse(str_detect(SampleID, "_"), SampleID, paste0(SampleID, "_0")))
 
 # Extract tables from HTML
 qc_html <- read_html(opt$qc_html)
