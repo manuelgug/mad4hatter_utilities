@@ -47,7 +47,7 @@ opt <- parse_args(opt_parser)
 lab_excel <- read_excel(opt$lab_excel, sheet = "Balancing")
 
 #extract run name
-run_name <- lab_excel$RUN[1]
+run_name <- opt$lab_excel
 
 #format lab_excel
 colnames(lab_excel)[4]<-"SampleID"
@@ -78,6 +78,8 @@ cutadapt_ss$SampleID <- gsub("Nn", "NN", cutadapt_ss$SampleID)
 
 # >100 reads table
 hundred_or_more <- tables[[6]]
+
+colnames(hundred_or_more)[1] <- "SampleID"
 
 hundred_or_more <- hundred_or_more %>%
   mutate(SampleID = ifelse(str_detect(SampleID, "_"), SampleID, paste0(SampleID, "_0")))
