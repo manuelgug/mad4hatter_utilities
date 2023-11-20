@@ -92,6 +92,7 @@ unique_alleles$amp_reverse_compleemntary <- amp_rev_comps
 
 #get dna alignments
 aligned_amp_rev_comp<- c()
+aligned_amp_rev_comp_aln<- c()
 
 for (amprevcomp in unique_alleles$amp_reverse_compleemntary){
   
@@ -102,10 +103,15 @@ for (amprevcomp in unique_alleles$amp_reverse_compleemntary){
   alignment <- AlignSeqs(sequences)
   
   aligned_amp_rev_comp <- c(aligned_amp_rev_comp, as.character(alignment[2]))
-  
 }
 
 unique_alleles$aligned_amp_rev_comp <- aligned_amp_rev_comp
+
+#output full alignment just because
+full_alignment_concat <- DNAStringSet(c(k13_fasta_rev_comp, aligned_amp_rev_comp))
+names(full_alignment_concat)[2:87]<- unique_alleles$locus
+
+writeXStringSet(full_alignment_concat, "full_aligment_amplicons.fasta", format = "fasta")
 
 
 # 5) translate aligned amplicons (reveverse compliment)
