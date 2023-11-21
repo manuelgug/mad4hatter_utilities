@@ -81,7 +81,7 @@ for (run in seq_along(result_list)){
 
 # 4) align sequences to k13 gene reference
 #to avoid doing excessive amounts of alignment, perform only on unique alleles (goes from 3000+ to just 86!), fill table later
-unique_alleles <- k13_amps_allele_data[c("locus", "pseudo_cigar", "asv")]
+unique_alleles <- k13_amps_allele_data[c("locus", "asv")]
 unique_alleles <- distinct(unique_alleles)
 dim(unique_alleles)
 
@@ -236,8 +236,8 @@ unique_alleles_complete <- unique_alleles_complete[complete.cases(unique_alleles
 
 # 7) final k13 allele_data formatting
 
-# Merge based on "locus" and "pseudo_cigar"
-merged_data <- merge(k13_amps_allele_data, unique_alleles_complete, by = c("locus", "pseudo_cigar"))
+# Merge based on "locus" and "asv"
+merged_data <- merge(k13_amps_allele_data, unique_alleles_complete, by = c("locus", "asv"))
 
 merged_data<- merged_data[,c(-11,-15:-18)]
 
