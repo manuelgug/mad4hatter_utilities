@@ -29,6 +29,12 @@ k13_fasta <- readDNAStringSet("Pf3d7_k13_ref_gene.fasta")
 k13_prot_rev_comp <- translate(reverseComplement(k13_fasta)) # 3'5' Frame 1
 k13_fasta_rev_comp <- reverseComplement(k13_fasta) # 3'5' Frame 1
 
+#just to be sure the ref is good
+k13_fasta_PLASMODB_rev_comp <- readDNAStringSet("Pf3d7_k13_ref_gene_PLASMODB.fasta")
+refs_k13_alignment<-AlignSeqs(DNAStringSet(c(k13_fasta_rev_comp, k13_fasta_PLASMODB_rev_comp)))
+
+writeXStringSet(refs_k13_alignment, "refs_k13_alignment.fasta", format = "fasta")
+
 
 # 3) extract k13 amplicons from filtered allele data
 # List all directories in the current working directory
