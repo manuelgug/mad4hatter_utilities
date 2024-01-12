@@ -9,7 +9,7 @@ Compilation of scripts to work with mad4hatter's outputs
 ### Usage
 
 ```bash
-Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarker_table PATH] [--CFilteringMethod METHOD] [--MAF VALUE] [--exclude_file PATH] [--use_case_amps PATH] [--outdir PATH]
+Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarkers_table PATH] [--CFilteringMethod METHOD] [--MAF VALUE] [--exclude_file PATH] [--use_case_amps PATH] [--outdir PATH]
 ```
 
 - `--allele_table`: Path to the input allele table.
