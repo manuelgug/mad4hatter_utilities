@@ -73,7 +73,7 @@ k13_amps_allele_data<- as.data.frame(NULL)
 for (run in seq_along(result_list)){
   ok <- result_list[[run]]$df_list
   ok <- as.data.frame(ok)
-  ok <- ok[ok$locus == amp_data$amplicon & ok$pseudo_cigar != ".",] #subset k13 amplicons and exclude the ones identical to reference
+  ok <- ok[ok$locus %in% amp_data$amplicon & ok$pseudo_cigar != ".",] #subset k13 amplicons and exclude the ones identical to reference
   
   k13_amps_allele_data <- rbind(k13_amps_allele_data, ok)
 }
@@ -115,7 +115,7 @@ unique_alleles$aligned_amp_rev_comp <- aligned_amp_rev_comp
 
 #output full alignment just because
 full_alignment_concat <- DNAStringSet(c(k13_fasta_rev_comp, aligned_amp_rev_comp))
-names(full_alignment_concat)[2:87]<- unique_alleles$locus
+names(full_alignment_concat)[2:251]<- unique_alleles$locus
 
 writeXStringSet(full_alignment_concat, "full_aligment_amplicons.fasta", format = "fasta")
 
@@ -241,13 +241,17 @@ merged_data <- merge(k13_amps_allele_data, unique_alleles_complete, by = c("locu
 
 merged_data<- merged_data[,c(-11,-15:-18)]
 
-#remove codons already know to be relevant for resistance
-known_resistance_codons <- as.numeric(sub("^[^-]*-[^-]*-(.*)$", "\\1", amp_data0$V5))
-known_resistance_codons <- as.vector(unique(known_resistance_codons))
+# #remove codons already know to be relevant for resistance
+# known_resistance_codons <- as.numeric(sub("^[^-]*-[^-]*-(.*)$", "\\1", amp_data0$V5))
+# known_resistance_codons <- as.vector(unique(known_resistance_codons))
+# 
+# FINAL_TABLE <- merged_data[!(merged_data$non_synonymous_codon %in% known_resistance_codons), ]
+# 
+# FINAL_TABLE_sorted <- FINAL_TABLE[order(FINAL_TABLE$Run, FINAL_TABLE$locus, FINAL_TABLE$sampleID, FINAL_TABLE$pseudo_cigar), ]
+# colnames(FINAL_TABLE_sorted)[4]<-"asv"
 
-FINAL_TABLE <- merged_data[!(merged_data$non_synonymous_codon %in% known_resistance_codons), ]
+# Remove specified columns
+colnames_to_remove <- c("amp_reverse_compleemntary", "aligned_amp_rev_comp", "translated_aligned_amp_rev_comp", "rowname", "Category", "allele")
+merged_data <- merged_data[, !(names(merged_data) %in% colnames_to_remove)]
 
-FINAL_TABLE_sorted <- FINAL_TABLE[order(FINAL_TABLE$Run, FINAL_TABLE$locus, FINAL_TABLE$sampleID, FINAL_TABLE$pseudo_cigar), ]
-colnames(FINAL_TABLE_sorted)[4]<-"asv"
-
-write.csv(FINAL_TABLE_sorted, "k13_screening_new_nsym_mutations_FINAL.csv", row.names = F)
+write.csv(merged_data, "k13_screening_new_nsym_mutations_FINAL_NEW16apr2024.csv", row.names = F)
