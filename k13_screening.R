@@ -43,6 +43,13 @@ all_dirs <- list.files(path = "../results_v0.1.8_RESMARKERS_FIX/", full.names = 
 # Filter directories containing "*FILTERED"
 folder_path <- grep("FILTERED", all_dirs, value = TRUE, fixed = TRUE)
 
+#EXCLUDE RUNS THAT WEREN'T FILTERED FOR CONTAMINANTS BECAUSE THEY DIDN'T HAVE RECOGNIZABLE NEG CONTROLS DUE TO INCONSISTENT SAMPLE NAMING:
+runs_to_exclude <- c("../results_v0.1.8_RESMARKERS_FIX//220727_VH00444_nanna_RESULTS_v0.1.8_FILTERED",
+                     "../results_v0.1.8_RESMARKERS_FIX//RETRO_ANC_run2_RESULTS_v0.1.8_FILTERED",
+                     "../results_v0.1.8_RESMARKERS_FIX//RETRO_ANC_run3_RESULTS_v0.1.8_FILTERED")
+
+folder_path <- folder_path[!folder_path %in% runs_to_exclude]
+
 # Function to read CSV files from a folder
 read_csv_in_folder <- function(folder_path) {
   csv_files <- list.files(path = folder_path, pattern = "allele_data.*filtered.csv", full.names = TRUE)
@@ -85,6 +92,8 @@ unique_alleles <- k13_amps_allele_data[c("locus", "asv")]
 unique_alleles <- distinct(unique_alleles)
 dim(unique_alleles)
 
+N_UNIQUE_ALLELES <- dim(unique_alleles)[1]
+
 # Loop through each sequence in unique_alleles$asv
 amp_rev_comps<-c()
 
@@ -115,7 +124,7 @@ unique_alleles$aligned_amp_rev_comp <- aligned_amp_rev_comp
 
 #output full alignment just because
 full_alignment_concat <- DNAStringSet(c(k13_fasta_rev_comp, aligned_amp_rev_comp))
-names(full_alignment_concat)[2:251]<- unique_alleles$locus
+names(full_alignment_concat)[2:(N_UNIQUE_ALLELES+1)]<- unique_alleles$locus
 
 writeXStringSet(full_alignment_concat, "full_aligment_amplicons.fasta", format = "fasta")
 
@@ -239,19 +248,22 @@ unique_alleles_complete <- unique_alleles_complete[complete.cases(unique_alleles
 # Merge based on "locus" and "asv"
 merged_data <- merge(k13_amps_allele_data, unique_alleles_complete, by = c("locus", "asv"))
 
-merged_data<- merged_data[,c(-11,-15:-18)]
-
-# #remove codons already know to be relevant for resistance
-# known_resistance_codons <- as.numeric(sub("^[^-]*-[^-]*-(.*)$", "\\1", amp_data0$V5))
-# known_resistance_codons <- as.vector(unique(known_resistance_codons))
-# 
-# FINAL_TABLE <- merged_data[!(merged_data$non_synonymous_codon %in% known_resistance_codons), ]
-# 
-# FINAL_TABLE_sorted <- FINAL_TABLE[order(FINAL_TABLE$Run, FINAL_TABLE$locus, FINAL_TABLE$sampleID, FINAL_TABLE$pseudo_cigar), ]
-# colnames(FINAL_TABLE_sorted)[4]<-"asv"
-
 # Remove specified columns
 colnames_to_remove <- c("amp_reverse_compleemntary", "aligned_amp_rev_comp", "translated_aligned_amp_rev_comp", "rowname", "Category", "allele")
 merged_data <- merged_data[, !(names(merged_data) %in% colnames_to_remove)]
 
-write.csv(merged_data, "k13_screening_new_nsym_mutations_FINAL_NEW16apr2024.csv", row.names = F)
+#remove UNdetermined samples and controls
+merged_data <- merged_data[!grepl("Undetermined", merged_data$sampleID, ignore.case = TRUE),]
+merged_data <- merged_data[!grepl("3D7", merged_data$sampleID, ignore.case = TRUE),]
+merged_data <- merged_data[!grepl("PM", merged_data$sampleID, ignore.case = TRUE),]
+merged_data <- merged_data[!grepl("DS", merged_data$sampleID, ignore.case = TRUE),]
+
+#remove codons already know to be relevant for resistance
+known_resistance_codons <- as.numeric(sub("^[^-]*-[^-]*-(.*)$", "\\1", amp_data0$V5))
+known_resistance_codons <- as.vector(unique(known_resistance_codons))
+
+merged_data_only_pipe_nsym <- merged_data[(merged_data$non_synonymous_codon %in% known_resistance_codons), ] #this is for validation purposes
+merged_data_NEW_nsym <- merged_data[!(merged_data$non_synonymous_codon %in% known_resistance_codons), ] #this is the actual output
+
+write.csv(merged_data_NEW_nsym, "k13_screening_NEW_nsym_mutations_FINAL_17apr2024.csv", row.names = F)
+write.csv(merged_data_only_pipe_nsym, "k13_screening_PIPELINE_nsym_mutations_FINAL_17apr2024.csv", row.names = F)
