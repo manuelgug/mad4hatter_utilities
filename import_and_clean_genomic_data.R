@@ -54,6 +54,13 @@ good_sampleID <- merged_dfs %>%
 # Keep good quality samples
 merged_dfs <- merged_dfs[merged_dfs$sampleID %in% good_sampleID, ]
 
+#remove shit
+MAF = 0.01
+
+merged_dfs <- merged_dfs[!grepl("I=", merged_dfs$allele),] #remove alleles with I (insertion)
+merged_dfs <- merged_dfs[!grepl("D=", merged_dfs$allele),] #remove alleles with D (deletion)
+merged_dfs <- merged_dfs[!merged_dfs$reads < 10,] #remove alleles with low read counts
+merged_dfs <- merged_dfs[!merged_dfs$norm.reads.locus < MAF,] #remove alleles with low read counts
 
 #output
 write.csv(merged_dfs, "high_quality_genomic_Data.csv", row.names = F)
