@@ -33,6 +33,12 @@ Rscript filtering.R [--allele_table PATH] [--microhaps_table PATH] [--resmarkers
 
 - `--outdir`: Name of the directory where results will be stored.
 
+### Example command
+
+```shell
+Rscript filtering.R --allele_table MDACD_NextSEQ01_RESULTS_v0.1.8/allele_data.txt --microhaps_table MDACD_NextSEQ01_RESULTS_v0.1.8/resistance_marker_module/resmarker_microhap_table.txt --resmarkers_table MDACD_NextSEQ01_RESULTS_v0.1.8/resistance_marker_module/resmarker_table.txt --CFilteringMethod global_max --MAF 0 --outdir MDACD_NextSEQ01_RESULTS_v0.1.8_FILTERED
+```
+
 ### Nomenclature of controls
 
 - **Positive Controls**: The script identifies positive controls using the following conditions:
