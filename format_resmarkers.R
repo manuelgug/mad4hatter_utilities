@@ -4,10 +4,10 @@ suppressPackageStartupMessages(library(dplyr))
 
 # Define the command-line arguments
 option_list <- list(
-  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="HFS_22_03_RESULTS_v0.1.8_FILTERED//resmarker_table_global_max_0_filtered.csv"),
-  make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="filtered_results/resmarker_table_old_format.csv"),
-  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="HFS_22_03_RESULTS_v0.1.8_FILTERED//resmarker_microhap_table_global_max_0_filtered.csv"),
-  make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="filtered_results/resmarker_microhap_table_old_format.csv")
+  make_option(c("--input_res"), type = "character", help = "Input file path (e.g., resmarker_table.txt)" , default ="runs_for_simone-selected/TES22_NextSeq01_RESULTS_v0.2.2_FILTERED/resmarker_table_global_max_0.01_filtered.csv"),
+  make_option(c("--output_res"), type = "character", help = "Output file path for the formatted data (e.g., resmarker_table_old_format.csv)", default ="runs_for_simone-selected/TES22_NextSeq01_RESULTS_v0.2.2_FILTERED/resmarker_table_old_format.csv"),
+  make_option(c("--input_haps"), type = "character", help = "Input file path (e.g., resmarker_microhap_table.txt)", default ="runs_for_simone-selected/TES22_NextSeq01_RESULTS_v0.2.2_FILTERED/resmarker_microhaplotype_table_global_max_0.01_filtered.csv"),
+  make_option(c("--output_haps"), type = "character",help = "Output file path for the formatted data (e.g., resmarker_microhap_table_old_format.csv)", default ="runs_for_simone-selected/TES22_NextSeq01_RESULTS_v0.2.2_FILTERED/resmarker_microhap_table_old_format.csv")
 )
 
 # Parse the command-line arguments
@@ -21,18 +21,8 @@ opt <- parse_args(opt_parser)
 if (!is.null(opt$input_res)) {
   resmarkers <- read.csv(opt$input_res, header = TRUE)
 
-  resmarkers <- resmarkers[, !colnames(resmarkers) %in% c("norm.reads.locus", "n.alleles", "locus")]
-  
-  #sum reads when needed
-  # Group rows by all columns except the last one
-  #resmarkers <- resmarkers %>%
-  #  group_by(across(-Reads)) %>%
-  #  # Sum the last column within each group and replace the original values
-  #  mutate(Reads = sum(as.numeric(Reads))) %>%
-  #  # Remove duplicates
-  #  distinct() %>%
-  #  # Reset grouping
-  #  ungroup()
+  cols_to_drop <- tolower(colnames(resmarkers)) %in% c("norm.reads.locus", "n.alleles", "locus")
+  resmarkers <- resmarkers[, !cols_to_drop]
   
   resmarkers<-as.data.frame(resmarkers)
   
@@ -53,24 +43,26 @@ if (!is.null(opt$input_res)) {
     # Extract the elements from combined_combinations
     elements <- combinations[index,]
     
-    # Create a new row with NA values
-    new_row <- data.frame(
-      SampleID = elements$Var1,
-      GeneID = NA,
-      Gene = NA,
-      CodonID = NA,
-      RefCodon = NA,
-      Codon = NA,
-      CodonStart = NA,
-      CodonRefAlt = NA,
-      RefAA = NA,
-      AA = NA,
-      AARefAlt = NA,
-      Reads = NA,
-      resmarker = elements$Var2,
-      resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
-      contents = "[NA]"
-    )
+    # Define the fixed columns
+    first_cols <- c("SampleID")
+    last_cols  <- c("resmarker", "resmarker_sampleID", "contents")
+    
+    # Middle columns should follow the structure of resmarkers
+    middle_cols <- setdiff(colnames(resmarkers), c(first_cols, last_cols))
+    
+    # Full column order for new_row
+    col_order <- c(first_cols, middle_cols, last_cols)
+    
+    # Initialize an empty row with all columns
+    new_row <- as.data.frame(matrix(NA, nrow = length(elements$Var1), ncol = length(col_order)))
+    colnames(new_row) <- col_order
+    
+    # Fill in the known values
+    new_row$SampleID <- elements$Var1
+    new_row$resmarker <- elements$Var2
+    new_row$resmarker_sampleID <- paste(elements$Var1, elements$Var2, sep = "_")
+    new_row$contents <- "[NA]"
+    
     
     # Add the new row to resmarkers
     resmarkers <- rbind(resmarkers, new_row)
@@ -137,7 +129,8 @@ if (!is.null(opt$input_res)) {
 if (!is.null(opt$input_haps)) {
   resmarkers <- read.table(opt$input_haps, header = TRUE, sep =",")
   
-  resmarkers <- resmarkers[, !colnames(resmarkers) %in% c("norm.reads.locus", "n.alleles")]
+  cols_to_drop <- tolower(colnames(resmarkers)) %in% c("norm.reads.locus", "n.alleles")
+  resmarkers <- resmarkers[, !cols_to_drop]
   
   #sum reads when needed
   # Group rows by all columns except the last one
@@ -153,7 +146,8 @@ if (!is.null(opt$input_haps)) {
   resmarkers<-as.data.frame(resmarkers)
   
   #processing
-  resmarkers$resmarker <- paste(resmarkers$Gene, resmarkers$MicrohapIndex, sep = "_") #micfrohaps names
+  col_to_use <- intersect(c("MicrohapIndex", "MicrohaplotypeCodonIDs"), names(resmarkers))[1]
+  resmarkers$resmarker <- paste(resmarkers$Gene, resmarkers[[col_to_use]], sep = "_")
   resmarkers$resmarker_sampleID <- paste(resmarkers$SampleID, resmarkers$resmarker, sep = "_") #column to check for multiple microhaps in a single sample
   resmarkers$contents <- paste(resmarkers$Microhaplotype, " [", resmarkers$Reads, "]", sep = "")
   
@@ -169,20 +163,25 @@ if (!is.null(opt$input_haps)) {
     # Extract the elements from combined_combinations
     elements <- combinations[index,]
     
-    # Create a new row with NA values
-    new_row <- data.frame(
-      SampleID = elements$Var1,
-      GeneID = NA,
-      Gene = NA,
-      MicrohapIndex = NA,
-      RefMicrohap = NA,
-      Microhaplotype = NA,
-      MicrohapRefAlt = NA,
-      Reads = NA,
-      resmarker = elements$Var2,
-      resmarker_sampleID = paste(elements$Var1, elements$Var2, sep="_"),
-      contents = "[NA]"
-    )
+    # Define the fixed columns
+    first_cols <- c("SampleID")
+    last_cols  <- c("resmarker", "resmarker_sampleID", "contents")
+    
+    # Middle columns should follow the structure of resmarkers
+    middle_cols <- setdiff(colnames(resmarkers), c(first_cols, last_cols))
+    
+    # Full column order for new_row
+    col_order <- c(first_cols, middle_cols, last_cols)
+    
+    # Initialize an empty row with all columns
+    new_row <- as.data.frame(matrix(NA, nrow = length(elements$Var1), ncol = length(col_order)))
+    colnames(new_row) <- col_order
+    
+    # Fill in the known values
+    new_row$SampleID <- elements$Var1
+    new_row$resmarker <- elements$Var2
+    new_row$resmarker_sampleID <- paste(elements$Var1, elements$Var2, sep = "_")
+    new_row$contents <- "[NA]"
     
     # Add the new row to resmarkers
     resmarkers <- rbind(resmarkers, new_row)
